@@ -1,1 +1,3 @@
-ТОПОВАЯ ПОГОДА version2
+react+vite
+npm install 
+npm run dev
