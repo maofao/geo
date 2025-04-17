@@ -1,107 +1,103 @@
-import React, { useState, FormEvent, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Loader2, Moon, Sun } from 'lucide-react'
+import { WeatherCard } from '@/components/weather/WeatherCard'
+import { SearchBar } from '@/components/weather/SearchBar'
+import { useWeather } from '@/hooks/useWeather'
+import { Button } from '@/components/ui/button'
 
-interface WeatherCondition {
-  text: string;
-  icon: string;
-}
-
-interface WeatherData {
-  temp_c: number;
-  condition: WeatherCondition;
-  humidity: number;
-  wind_kph: number;
-}
-
-interface WeatherDisplayProps {
-  city: string;
-}
-
-const WeatherDisplay: React.FC<WeatherDisplayProps> = ({ city }) => {
-  const [weather, setWeather] = useState<WeatherData | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+function App() {
+  const [searchQuery, setSearchQuery] = useState('')
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem('darkMode')
+    return saved === 'true' || 
+           (saved === null && window.matchMedia('(prefers-color-scheme: dark)').matches)
+  })
+  const { weatherData, loading, error, fetchWeatherData, searchCity } = useWeather()
 
   useEffect(() => {
-    const fetchWeather = async () => {
-      setLoading(true);
-      try {
-        const response = await fetch(
-          `https://api.weatherapi.com/v1/current.json?key=2a589905d5114dbaa34163043250904&q=${city}&aqi=no`
-        );
-        
-        if (!response.ok) {
-          throw new Error('Город не найден');
-        }
+    fetchWeatherData()
+  }, [fetchWeatherData])
 
-        const data = await response.json();
-        setWeather(data.current);
-        setError(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Произошла ошибка');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (city) {
-      fetchWeather();
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
     }
-  }, [city]);
+    localStorage.setItem('darkMode', darkMode.toString())
+  }, [darkMode])
 
-  if (loading) return <p className="text-center">Загрузка...</p>;
-  if (error) return <p className="text-center text-red-500">Ошибка: {error}</p>;
-  if (!weather) return null;
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (searchQuery.trim()) {
+      searchCity(searchQuery.trim())
+    }
+  }
+
+  const handleRefresh = (cityName: string) => {
+    searchCity(cityName)
+  }
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader>
-        <CardTitle>Погода в {city}</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col items-center gap-4">
-        <img src={`https:${weather.condition.icon}`} alt="weather icon" className="w-16 h-16" />
-        <div className="text-center space-y-2">
-          <p>Температура: {weather.temp_c}°C</p>
-          <p>Состояние: {weather.condition.text}</p>
-          <p>Влажность: {weather.humidity}%</p>
-          <p>Ветер: {weather.wind_kph} км/ч</p>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 px-4">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex justify-between items-center mb-8">
+          <motion.h1 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-3xl font-bold text-gray-900 dark:text-white"
+          >
+            Прогноз погоды
+          </motion.h1>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setDarkMode(!darkMode)}
+            aria-label="Переключить тему"
+            className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+          >
+            {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </Button>
         </div>
-      </CardContent>
-    </Card>
-  );
-};
 
-const App: React.FC = () => {
-  const [city, setCity] = useState<string>('');
-  const [searchCity, setSearchCity] = useState<string>(''); 
+        <SearchBar
+          searchQuery={searchQuery}
+          loading={loading}
+          onSearchChange={setSearchQuery}
+          onSearchSubmit={handleSearch}
+        />
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (city.trim()) {
-      setSearchCity(city.trim());
-    }
-  };
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center text-red-500 dark:text-red-400 mb-4"
+          >
+            {error}
+          </motion.div>
+        )}
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-      <div className="w-full max-w-md space-y-6">
-        <h1 className="text-3xl font-bold text-center">Проверка погоды</h1>
-        <form onSubmit={handleSubmit} className="flex gap-2">
-          <Input
-            type="text"
-            value={city}
-            onChange={(e) => setCity(e.target.value)}
-            placeholder="Введите название города"
-            className="flex-1"
-          />
-          <Button type="submit">Узнать погоду</Button>
-        </form>
-        {searchCity && <WeatherDisplay city={searchCity} />}
+        {loading ? (
+          <div className="flex justify-center items-center h-64">
+            <Loader2 className="w-8 h-8 animate-spin text-blue-500 dark:text-blue-400" />
+          </div>
+        ) : (
+          <AnimatePresence>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {weatherData.map((city) => (
+                <WeatherCard
+                  key={city.city}
+                  weather={city}
+                  onRefresh={() => handleRefresh(city.city)}
+                />
+              ))}
+            </div>
+          </AnimatePresence>
+        )}
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default App;
+export default App

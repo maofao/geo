@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-background-light dark:bg-background-dark text-text dark:text-text-dark;
+  }
+}
+
+@layer components {
+  .weather-card {
+    @apply bg-background-card-light dark:bg-background-card-dark 
+           border border-border-light dark:border-border-dark 
+           rounded-lg shadow-card hover:shadow-hover 
+           transform transition-all duration-300 hover:-translate-y-1;
+  }
+
+  .weather-icon {
+    @apply w-weather-icon h-weather-icon;
+  }
+
+  .weather-temp {
+    @apply text-weather-temp font-bold text-text dark:text-text-dark;
+  }
+
+  .weather-details {
+    @apply flex flex-col gap-2 text-sm;
+  }
+
+  .weather-detail {
+    @apply flex items-center gap-2 text-text-secondary dark:text-text-dark-secondary;
+  }
+
+  .weather-detail-icon {
+    @apply w-4 h-4 text-primary dark:text-primary-dark;
+  }
+} 
